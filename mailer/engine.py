@@ -97,10 +97,10 @@ def send_all():
             deferred = 0
             sent = 0
             
-            sent_today_count = MessageLog.objects.filter(account=account,
-                when_attempted__gt=datetime.datetime.now() - datetime.timedelta(days=1)).count()
+            sent_today_count = MessageLog.objects.filter(account=account, result="1",
+                when_attempted__gt=datetime.datetime.now() - datetime.timedelta(days=1),).count()
                 
-            logging.debug("Account {account} has sent {count} emails in the past 24 hours".format(
+            logging.debug("Account {account} has successfully sent {count} emails in the past 24 hours".format(
                 account=account, count=sent_today_count))
             
             connection = None
