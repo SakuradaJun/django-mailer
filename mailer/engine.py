@@ -1,6 +1,7 @@
 import time
 import smtplib
 import logging
+import datetime
 
 from lockfile import FileLock, AlreadyLocked, LockTimeout
 from socket import error as socket_error
@@ -27,6 +28,9 @@ LOCK_WAIT_TIMEOUT = getattr(settings, "MAILER_LOCK_WAIT_TIMEOUT", -1)
 
 # The actual backend to use for sending, defaulting to the Django default.
 EMAIL_BACKEND = getattr(settings, "MAILER_EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+
+# Get daily sending limit
+DAILY_SENDING_LIMIT = getattr(settings, 'MAILER_DAILY_SENDING_LIMIT', 0)
 
 
 def prioritize():
@@ -71,10 +75,16 @@ def send_all():
     deferred = 0
     sent = 0
     
+    sent_today_count = MessageLog.objects.filter(when_attempted__gt=datetime.datetime.now() - datetime.timedelta(days=1)).count() 
+    
     try:
         connection = None
         for message in prioritize():
             try:
+                if DAILY_SENDING_LIMIT and (sent_today_count + sent) >= DAILY_SENDING_LIMIT:
+                    logging.info("daily sending limit of {limit} reached - aborting".format(
+                        limit=DAILY_SENDING_LIMIT))
+                    break
                 if connection is None:
                     connection = get_connection(backend=EMAIL_BACKEND)
                 logging.info("sending message '%s' to %s" % (message.subject.encode("utf-8"), u", ".join(message.to_addresses).encode("utf-8")))
