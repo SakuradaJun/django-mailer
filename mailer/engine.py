@@ -98,7 +98,10 @@ def send_all():
             sent = 0
             
             sent_today_count = MessageLog.objects.filter(account=account,
-                when_attempted__gt=datetime.datetime.now() - datetime.timedelta(days=1)).count() 
+                when_attempted__gt=datetime.datetime.now() - datetime.timedelta(days=1)).count()
+                
+            logging.debug("Account {account} has sent {count} emails in the past 24 hours".format(
+                account=account, count=sent_today_count))
             
             connection = None
             for message in prioritize(account):
