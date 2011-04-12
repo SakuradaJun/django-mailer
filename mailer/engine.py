@@ -33,21 +33,21 @@ EMAIL_BACKEND = getattr(settings, "MAILER_EMAIL_BACKEND", "django.core.mail.back
 DAILY_SENDING_LIMIT = getattr(settings, 'MAILER_DAILY_SENDING_LIMIT', 0)
 
 
-def prioritize():
+def prioritize(account=0):
     """
-    Yield the messages in the queue in the order they should be sent.
+    Yield the messages in the queue in the order they should be sent
+    based on a specific account.
     """
-    
     while True:
-        while Message.objects.high_priority().count() or Message.objects.medium_priority().count():
-            while Message.objects.high_priority().count():
-                for message in Message.objects.high_priority().order_by("when_added"):
+        while Message.objects.high_priority(account).count() or Message.objects.medium_priority(account).count():
+            while Message.objects.high_priority(account).count():
+                for message in Message.objects.high_priority(account).order_by("when_added"):
                     yield message
-            while Message.objects.high_priority().count() == 0 and Message.objects.medium_priority().count():
-                yield Message.objects.medium_priority().order_by("when_added")[0]
-        while Message.objects.high_priority().count() == 0 and Message.objects.medium_priority().count() == 0 and Message.objects.low_priority().count():
-            yield Message.objects.low_priority().order_by("when_added")[0]
-        if Message.objects.non_deferred().count() == 0:
+            while Message.objects.high_priority(account).count() == 0 and Message.objects.medium_priority(account).count():
+                yield Message.objects.medium_priority(account).order_by("when_added")[0]
+        while Message.objects.high_priority(account).count() == 0 and Message.objects.medium_priority(account).count() == 0 and Message.objects.low_priority(account).count():
+            yield Message.objects.low_priority(account).order_by("when_added")[0]
+        if Message.objects.non_deferred(account).count() == 0:
             break
 
 
@@ -71,43 +71,68 @@ def send_all():
     
     start_time = time.time()
     
-    dont_send = 0
-    deferred = 0
-    sent = 0
-    
-    sent_today_count = MessageLog.objects.filter(when_attempted__gt=datetime.datetime.now() - datetime.timedelta(days=1)).count() 
+    kw_settings_map = dict(host='HOST', port='PORT', username='HOST_USER', password='HOST_PASSWORD', use_tls='USE_TLS',)
     
     try:
-        connection = None
-        for message in prioritize():
-            try:
-                if DAILY_SENDING_LIMIT and (sent_today_count + sent) >= DAILY_SENDING_LIMIT:
-                    logging.info("daily sending limit of {limit} reached - aborting".format(
-                        limit=DAILY_SENDING_LIMIT))
+        for account in Message.objects.values_list('account', flat=True).annotate():
+            connection_kwargs = {}
+            incomplete = False # easier than refactoring to function
+            for kw, setting in kw_settings_map.iteritems():
+                try:
+                    connection_kwargs[kw] = getattr(settings, 'EMAIL{account}_{setting}'.format(
+                        account=account or '', setting=setting))
+                except AttributeError, e:
+                    logging.warn(e)
+                    incomplete = True
                     break
-                if connection is None:
-                    connection = get_connection(backend=EMAIL_BACKEND)
-                logging.info("sending message '%s' to %s" % (message.subject.encode("utf-8"), u", ".join(message.to_addresses).encode("utf-8")))
-                email = message.email
-                email.connection = connection
-                email.send()
-                MessageLog.objects.log(message, 1) # @@@ avoid using literal result code
-                message.delete()
-                sent += 1
-            except (socket_error, smtplib.SMTPSenderRefused, smtplib.SMTPRecipientsRefused, smtplib.SMTPAuthenticationError), err:
-                message.defer()
-                logging.info("message deferred due to failure: %s" % err)
-                MessageLog.objects.log(message, 3, log_message=str(err)) # @@@ avoid using literal result code
-                deferred += 1
-                # Get new connection, it case the connection itself has an error.
-                connection = None
+                    
+            if incomplete:
+                logging.warn('Skipping account {account} due to failure to pull settings'.format(account=account))
+                continue
+            
+            logging.info("Sending mail for account {account}".format(account=account))
+            
+            
+            dont_send = 0
+            deferred = 0
+            sent = 0
+            
+            sent_today_count = MessageLog.objects.filter(account=account,
+                when_attempted__gt=datetime.datetime.now() - datetime.timedelta(days=1)).count() 
+            
+            connection = None
+            for message in prioritize(account):
+                try:
+                    if DAILY_SENDING_LIMIT and (sent_today_count + sent) >= DAILY_SENDING_LIMIT:
+                        logging.info("daily sending limit of {limit} reached - aborting".format(
+                            limit=DAILY_SENDING_LIMIT))
+                        break
+                    if connection is None:
+                        # use custom login parameters based on email account 
+                        connection = get_connection(backend=EMAIL_BACKEND, **connection_kwargs)
+                        
+                    logging.info("sending message '%s' to %s from account %s" % (message.subject.encode("utf-8"), u", ".join(message.to_addresses).encode("utf-8"), account))
+                    email = message.email
+                    email.connection = connection
+                    email.send()
+                    MessageLog.objects.log(message, 1) # @@@ avoid using literal result code
+                    message.delete()
+                    sent += 1
+                except (socket_error, smtplib.SMTPSenderRefused, smtplib.SMTPRecipientsRefused, smtplib.SMTPAuthenticationError), err:
+                    message.defer()
+                    logging.info("message deferred due to failure: %s" % err)
+                    MessageLog.objects.log(message, 3, log_message=str(err)) # @@@ avoid using literal result code
+                    deferred += 1
+                    # Get new connection, it case the connection itself has an error.
+                    connection = None
+                    
+            logging.info("")
+            logging.info("Account %s: %s sent; %s deferred;" % (account, sent, deferred))
     finally:
         logging.debug("releasing lock...")
         lock.release()
         logging.debug("released.")
     
-    logging.info("")
-    logging.info("%s sent; %s deferred;" % (sent, deferred))
     logging.info("done in %.2f seconds" % (time.time() - start_time))
 
 def send_loop():

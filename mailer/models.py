@@ -18,44 +18,45 @@ PRIORITIES = (
 
 class MessageManager(models.Manager):
     
-    def high_priority(self):
+    def high_priority(self, account):
         """
         the high priority messages in the queue
         """
         
-        return self.filter(priority="1")
+        return self.filter(priority="1", account=account)
     
-    def medium_priority(self):
+    def medium_priority(self, account):
         """
         the medium priority messages in the queue
         """
         
-        return self.filter(priority="2")
+        return self.filter(priority="2", account=account)
     
-    def low_priority(self):
+    def low_priority(self, account):
         """
         the low priority messages in the queue
         """
         
-        return self.filter(priority="3")
+        return self.filter(priority="3", account=account)
     
-    def non_deferred(self):
+    def non_deferred(self, account):
         """
         the messages in the queue not deferred
         """
         
-        return self.filter(priority__lt="4")
+        return self.filter(priority__lt="4", account=account)
     
-    def deferred(self):
+    def deferred(self, account=0, get_all=False):
         """
         the deferred messages in the queue
         """
-    
-        return self.filter(priority="4")
+        if get_all:
+            return self.filter(priority="4")
+        return self.filter(priority="4", account=account)
     
     def retry_deferred(self, new_priority=2):
         count = 0
-        for message in self.deferred():
+        for message in self.deferred(get_all=True):
             if message.retry(new_priority):
                 count += 1
         return count
@@ -87,6 +88,11 @@ class Message(models.Model):
     message_data = models.TextField()
     when_added = models.DateTimeField(default=datetime.now)
     priority = models.CharField(max_length=1, choices=PRIORITIES, default="2")
+    
+    # Which email account to use from settings.
+    # 0 for default. Email, Email1, Email2
+    account = models.IntegerField(default=0)
+    
     # @@@ campaign?
     # @@@ content_type?
     
@@ -144,7 +150,7 @@ def filter_recipient_list(lst):
 
 
 def make_message(subject="", body="", from_email=None, to=None, bcc=None,
-                 attachments=None, headers=None, priority=None):
+                 attachments=None, headers=None, priority=None, account=0):
     """
     Creates a simple message for the email parameters supplied.
     The 'to' and 'bcc' lists are filtered using DontSendEntry.
@@ -159,7 +165,7 @@ def make_message(subject="", body="", from_email=None, to=None, bcc=None,
     core_msg = EmailMessage(subject=subject, body=body, from_email=from_email,
                             to=to, bcc=bcc, attachments=attachments, headers=headers)
     
-    db_msg = Message(priority=priority)
+    db_msg = Message(priority=priority, account=account)
     db_msg.email = core_msg
     return db_msg
 
@@ -226,12 +232,15 @@ class MessageLog(models.Model):
     message_data = models.TextField()
     when_added = models.DateTimeField()
     priority = models.CharField(max_length=1, choices=PRIORITIES)
+    account = models.IntegerField(default=0)
     # @@@ campaign?
+    
     
     # additional logging fields
     when_attempted = models.DateTimeField(default=datetime.now)
     result = models.CharField(max_length=1, choices=RESULT_CODES)
     log_message = models.TextField()
+    
     
     objects = MessageLogManager()
     
