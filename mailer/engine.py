@@ -74,7 +74,7 @@ def send_all():
     kw_settings_map = dict(host='HOST', port='PORT', username='HOST_USER', password='HOST_PASSWORD', use_tls='USE_TLS',)
     
     try:
-        for account in Message.objects.values_list('account', flat=True).annotate():
+        for account in Message.objects.filter(priority__lt=4).values_list('account', flat=True).annotate():
             connection_kwargs = {}
             incomplete = False # easier than refactoring to function
             for kw, setting in kw_settings_map.iteritems():

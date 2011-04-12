@@ -49,3 +49,13 @@ All settings below are required and mailer will complain if it fails to find a s
     EMAIL1_HOST_PASSWORD = 'password'
     EMAIL1_USE_TLS = True
 
+## Usage
+
+    from mailer import send_mail
+
+    send_mail("Subject", "Body", "from@example.com", ["to@example.com"]) # uses default email settings
+    send_mail("Subject", "Body", "from@example.com", ["to@example.com"], account=1) # uses EMAIL1_* settings
+    send_mail("Subject", "Body", "from@example.com", ["to@example.com"], account=2) # uses EMAIL1_* settings
+
+    bash $ python manage.py send_mail
+    # iterates through Messages by account and sends up to DAILY_SENDING_LIMIT per account if specified.
