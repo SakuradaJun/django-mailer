@@ -110,6 +110,7 @@ def send_all():
                         logging.info("daily sending limit of {limit} reached - aborting".format(
                             limit=DAILY_SENDING_LIMIT))
                         break
+                    logging.info("Sent %s" % (sent_today_count + sent))
                     if connection is None:
                         # use custom login parameters based on email account 
                         connection = get_connection(backend=EMAIL_BACKEND, **connection_kwargs)

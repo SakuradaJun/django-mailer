@@ -21,7 +21,7 @@ If you'd like to use different "from" emails, it's currently not an option with 
 ## Options
 
 ### DAILY_SENDING_LIMIT  
-Specify an optional `DAILY_SENDING_LIMIT` in `settings.py` to limit the amount of emails per 24 hours.
+Specify an optional `MAILER_DAILY_SENDING_LIMIT` in `settings.py` to limit the amount of emails per 24 hours.
 
 Throttling is done via emails sent in the last 24 hours, not discrete days.
 
