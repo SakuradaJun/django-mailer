@@ -7,8 +7,6 @@ A reusable Django app for queuing the sending of email
 
 # Forked to support multiple accounts and email throttling.
 
-First draft on April 12, 2011 - may not work. 
-
 Forked to allow `django-mailer` to use multiple email accounts and to impose a daily sending limit per email account.
 
 Specifically made for Google Apps users who have a 500 email a day per user sending limit and are also limited to a `from_address` that is the actual authenticated account.
@@ -25,6 +23,8 @@ Specify an optional `MAILER_DAILY_SENDING_LIMIT` in `settings.py` to limit the a
 
 Throttling is done via emails sent in the last 24 hours, not discrete days.
 
+    # settings.py
+    MAILER_DAILY_SENDING_LIMIT = 400
 
 
 ### MULTIPLE ACCOUNTS  
