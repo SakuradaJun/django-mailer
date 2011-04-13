@@ -210,7 +210,7 @@ RESULT_CODES = (
 
 class MessageLogManager(models.Manager):
     
-    def log(self, message, result_code, log_message=""):
+    def log(self, message, result_code, log_message="", account=0):
         """
         create a log entry for an attempt to send the given message and
         record the given result and (optionally) a log message
@@ -223,6 +223,7 @@ class MessageLogManager(models.Manager):
             # @@@ other fields from Message
             result = result_code,
             log_message = log_message,
+            account=account,
         )
 
 
