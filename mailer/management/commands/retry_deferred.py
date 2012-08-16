@@ -11,4 +11,4 @@ class Command(NoArgsCommand):
     def handle_noargs(self, **options):
         logging.basicConfig(level=logging.DEBUG, format="%(message)s")
         count = Message.objects.retry_deferred() # @@@ new_priority not yet supported
-        logging.info("%s message(s) retried" % count)
+        logging.debug("%s message(s) retried" % count)

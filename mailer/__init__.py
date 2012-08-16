@@ -23,12 +23,11 @@ PRIORITY_MAPPING = {
     "deferred": "4",
 }
 
-
 # replacement for django.core.mail.send_mail
 
 
 def send_mail(subject, message, from_email, recipient_list, priority="medium",
-              fail_silently=False, auth_user=None, auth_password=None, account=0):
+              fail_silently=False, auth_user=None, auth_password=None, account=0, attachments=None):
     from django.utils.encoding import force_unicode
     from mailer.models import make_message
     
@@ -42,6 +41,7 @@ def send_mail(subject, message, from_email, recipient_list, priority="medium",
                  body=message,
                  from_email=from_email,
                  to=recipient_list,
+                 attachments=attachments,
                  priority=priority,
                  account=account).save()
     return 1
@@ -49,7 +49,7 @@ def send_mail(subject, message, from_email, recipient_list, priority="medium",
 
 def send_html_mail(subject, message, message_html, from_email, recipient_list,
                    priority="medium", fail_silently=False, auth_user=None,
-                   auth_password=None, account=0):
+                   auth_password=None, account=0, attachments=None):
     """
     Function to queue HTML e-mails
     """
@@ -68,6 +68,7 @@ def send_html_mail(subject, message, message_html, from_email, recipient_list,
                        from_email=from_email,
                        to=recipient_list,
                        priority=priority,
+                       attachments=None,
                        account=account)
     email = msg.email
     email = EmailMultiAlternatives(email.subject, email.body, email.from_email, email.to)

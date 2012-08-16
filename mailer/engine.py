@@ -90,7 +90,7 @@ def send_all():
                 logging.warn('Skipping account {account} due to failure to pull settings'.format(account=account))
                 continue
             
-            logging.info("Sending mail for account {account}".format(account=account))
+            logging.debug("Sending mail for account {account}".format(account=account))
             
             dont_send = 0
             deferred = 0
@@ -106,14 +106,14 @@ def send_all():
             for message in prioritize(account):
                 try:
                     if DAILY_SENDING_LIMIT and (sent_today_count + sent) >= DAILY_SENDING_LIMIT:
-                        logging.info("daily sending limit of {limit} reached - aborting".format(
+                        logging.warn("daily sending limit of {limit} reached - aborting".format(
                             limit=DAILY_SENDING_LIMIT))
                         break
                     if connection is None:
                         # use custom login parameters based on email account 
                         connection = get_connection(backend=EMAIL_BACKEND, **connection_kwargs)
                         
-                    logging.info("sending message '%s' to %s from account %s (%s/%s limit)" % (message.subject.encode("utf-8"), u", ".join(message.to_addresses).encode("utf-8"), account, (sent_today_count + sent), DAILY_SENDING_LIMIT ))
+                    logging.debug("sending message '%s' to %s from account %s (%s/%s limit)" % (message.subject.encode("utf-8"), u", ".join(message.to_addresses).encode("utf-8"), account, (sent_today_count + sent), DAILY_SENDING_LIMIT ))
                     email = message.email
                     email.connection = connection
                     email.send()
@@ -122,20 +122,20 @@ def send_all():
                     sent += 1
                 except (socket_error, smtplib.SMTPSenderRefused, smtplib.SMTPRecipientsRefused, smtplib.SMTPAuthenticationError), err:
                     message.defer()
-                    logging.info("message deferred due to failure: %s" % err)
+                    logging.warn("message deferred due to failure: %s" % err)
                     MessageLog.objects.log(message, 3, log_message=str(err), account=account) # @@@ avoid using literal result code
                     deferred += 1
                     # Get new connection, it case the connection itself has an error.
                     connection = None
                     
-            logging.info("")
-            logging.info("Account %s: %s sent; %s deferred;" % (account, sent, deferred))
+            logging.debug("")
+            logging.debug("Account %s: %s sent; %s deferred;" % (account, sent, deferred))
     finally:
         logging.debug("releasing lock...")
         lock.release()
         logging.debug("released.")
     
-    logging.info("done in %.2f seconds" % (time.time() - start_time))
+    logging.debug("done in %.2f seconds" % (time.time() - start_time))
 
 def send_loop():
     """

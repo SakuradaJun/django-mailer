@@ -143,7 +143,7 @@ def filter_recipient_list(lst):
     retval = []
     for e in lst:
         if DontSendEntry.objects.has_address(e):
-            logging.info("skipping email to %s as on don't send list " % e.encode("utf-8"))
+            logging.debug("skipping email to %s as on don't send list " % e.encode("utf-8"))
         else:
             retval.append(e)
     return retval
@@ -209,7 +209,6 @@ RESULT_CODES = (
 
 
 class MessageLogManager(models.Manager):
-    
     def log(self, message, result_code, log_message="", account=0):
         """
         create a log entry for an attempt to send the given message and
@@ -224,11 +223,12 @@ class MessageLogManager(models.Manager):
             result = result_code,
             log_message = log_message,
             account=account,
+            original_message_id=message.id,
         )
 
 
 class MessageLog(models.Model):
-    
+    original_message_id = models.IntegerField(blank=True, null=True, help_text="The message ID of the original message.")
     # fields from Message
     message_data = models.TextField()
     when_added = models.DateTimeField()
