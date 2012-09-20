@@ -1,0 +1,5 @@
+django-mailer by James Tauber <http://jtauber.com/>
+
+A reusable Django app for queuing the sending of email
+
+Now maintained by the Pinax project: https://github.com/pinax/django-mailer
