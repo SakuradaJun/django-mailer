@@ -5,7 +5,6 @@ from mailer.models import Message, DontSendEntry, MessageLog
 
 class MessageAdmin(admin.ModelAdmin):
     list_display = ["id", "account", "to_addresses", "subject", "when_added", "priority"]
-    
     readonly_fields = ['subject', 'to_addresses', 'body']
     
     def body(self, obj):
@@ -23,6 +22,7 @@ class DontSendEntryAdmin(admin.ModelAdmin):
 class MessageLogAdmin(admin.ModelAdmin):
     list_display = ["id", "account", "to_addresses", "subject", "when_attempted", "result"]
     readonly_fields = ['subject', 'to_addresses', 'body']
+    search_fields = ('to_addresses', 'subject')
     
     def body(self, obj):
         email = obj.email
