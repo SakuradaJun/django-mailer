@@ -245,6 +245,9 @@ class MessageLog(models.Model):
     
     objects = MessageLogManager()
     
+    class Meta:
+        ordering = ['-id']
+
     @property
     def email(self):
         return db_to_email(self.message_data)
